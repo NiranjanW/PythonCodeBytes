@@ -1,0 +1,4354 @@
+openapi: 3.0.0
+
+info:
+  version: 0.0.1
+  title: LCBO API Contract
+
+servers:
+  - url: http://localhost:10010/
+  - url: https://localhost:10010/
+
+paths:
+  /register/:
+    x-swagger-router-controller: register_controller
+    post:
+      description: create a new LCBO account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResponse"
+        "409":
+          description: Account already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "400":
+          description: One or more fields did not meet security requirements (e.g. special characters for password needed)
+          content:
+            application/json:
+               schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /login/:
+    x-swagger-router-controller: login_controller
+    post:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      description: login with an LCBO account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccess"
+        "401":
+          description: User had bad username or password
+        "403":
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "400":
+          description: error due to bad input data for username / password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /logout/:
+    x-swagger-router-controller: account_controller
+    post:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+        - userAuthToken: []
+      responses:
+        "200":
+          description: User has logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponse"
+        "400":
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /account/:
+    x-swagger-router-controller: account_controller
+    get:
+      description: Get account details for the user. name, email, airmiles.
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+        - userAuthToken: []
+      responses:
+        "200":
+          description: Users account information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountInfoResult"
+        "401":
+          description: User is not authorized
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /account/address/:
+    x-swagger-router-controller: account_address_controller
+    get:
+      description: Get a list of shipping addresses associated with an account
+      security:
+        - userAuthToken: []
+      parameters:
+        - name: type
+          in: query
+          description: The type of address we are requesting. Shipping or billing
+          schema:
+            $ref: "#/components/schemas/AddressType"
+      responses:
+        "200":
+          description: On success return a list of addresses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressResultList"
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    post:
+      description: Add an address to the users list of addresses.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRequest"
+      responses:
+        "201":
+          description: Address was added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressResult"
+        "400":
+          description: Error with address fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                 $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/account/address/{id}/":
+    x-swagger-router-controller: account_address_controller
+    delete:
+      description: Delete a user address based on id
+      parameters:
+        - name: id
+          in: path
+          description: The id of the shipping address removed
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Success
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    type: string
+                    example: not found
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /validate_address/:
+    post:
+      description: Add an address to the users list of addresses.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateAddressRequest"
+      responses:
+        "204":
+          description: No field errors with address. Address is valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressFieldError"
+        "400":
+          description: Error with address fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressFieldError"
+        "401":
+          description: User is not authorized
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /password_reset/:
+    x-swagger-router-controller: password_reset_controller
+    post:
+      description: Request a password reset for the user.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "204":
+          description: Success
+        "400":
+          description: bad request
+          content:
+            application/json:
+               schema:
+                properties:
+                  fieldErrors:
+                    $ref: "#/components/schemas/AccountFieldError"
+                  message:
+                    type: string
+                    description: detailed description of error from server.  Debugging use only.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /password/:
+    x-swagger-router-controller: password_controller
+    put:
+      description: Change the users password. Requires that the user is currently logged in
+        with a a valid session token.
+      security:
+        - userAuthToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutPasswordRequest"
+      responses:
+        "204":
+          description: Success
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "400":
+          description: One or more fields did not meet security requirements (e.g. special characters for password needed)
+          content:
+            application/json:
+               schema:
+                 $ref: "#/components/schemas/NewServerErrorResponse"
+        "403":
+          description: The old password is incorrect
+          content:
+            application/json:
+               schema:
+                 $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /confirm_password/:
+    x-swagger-router-controller: confirm_password_controller
+    put:
+      description: Confirm a password change after a password reset. This end-point accepts
+        a password reset token (provided in an email) and a new password in
+        order to reset a users password and log them in.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmPasswordRequest"
+      responses:
+        "200":
+          description: Password reset complete and user is logged in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmPasswordResponse"
+        "401":
+          description: User is not authorized. Bad reset token?
+        "422":
+          description: One or more fields did not meet security requirements (e.g. special
+            characters for password needed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmPasswordResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /stores/:
+    x-swagger-router-controller: stores_controller
+    get:
+      description: Returns a list of stores that match the supplied query.  (`longitude`,
+        and `latitude`) or 'postalCode' or 'municipality' are required, and the
+        response will contain stores that are nearest to the specified
+        location.  Remaining parameters are optional, and not filling them in
+        mark them as wildcards.
+      parameters:
+        - $ref: "#/components/parameters/longitude"
+        - $ref: "#/components/parameters/latitude"
+        - name: postalCode
+          description: the postal code to begin lookups of closest stores
+          in: query
+          allowEmptyValue: true
+          schema:
+            type: string
+        - name: municipality
+          description: the municipality to begin lookups of closest stores
+          in: query
+          allowEmptyValue: true
+          schema:
+            type: string
+        - name: itemNumber
+          description: if provided, the location will take into account to filter stores
+            that have this item in stock. Results will include number of item in
+            stock.
+          in: query
+          schema:
+            type: string
+        - name: numstores
+          description: the maximum number of stores to get in the response.
+          in: query
+          schema:
+            type: integer
+        - name: dayOfWeek
+          description: Specifies the day of week the store will be open. [0=sunday,
+            1=monday... ]
+          in: query
+          schema:
+            type: integer
+        - name: timeOfDay
+          description: Time of day formatted in hh:mm:ss (24 hour time), as per
+            https://en.wikipedia.org/wiki/ISO_8601#Times
+          in: query
+          schema:
+            type: string
+        - name: paginationOffset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Results exist for criteria.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreResult"
+        "204":
+          description: no matching results
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/stores/{locationNumber}/":
+    x-swagger-router-controller: store_details_controller
+    get:
+      description: get the store details of a specified store.
+      parameters:
+        - $ref: "#/components/parameters/locationNumber"
+        - name: itemNumber
+          description: ProductId specifying which product is represented in the quantity
+            field.
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/longitude"
+        - $ref: "#/components/parameters/latitude"
+      responses:
+        "200":
+          description: Store found, here are the details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResult"
+        "404":
+          description: store not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/stores/{locationNumber}/status/":
+    x-swagger-router-controller: store_status_controller
+    get:
+      description: get the status of a specified store.
+      parameters:
+        - $ref: "#/components/parameters/locationNumber"
+      responses:
+        "200":
+          description: status of the store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreStatusResponse"
+        default:
+          description: status of the store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /popular_searches/:
+    x-swagger-router-controller: popular_searches_controller
+    get:
+      description: Returns a list of popular search terms to help the user know what's hot
+      responses:
+        "200":
+          description: List of popular results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LookaheadResult"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /look_ahead/:
+    x-swagger-router-controller: lookahead_controller
+    get:
+      description: Returns a list of potential search terms or products related based on
+        the users keyword input.
+      parameters:
+        - name: keyword
+          in: query
+          description: The users search input
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of look results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LookaheadResult"
+        "204":
+          description: No results.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /favourite_products/:
+    get:
+      description: Returns a list of all users favourite products
+      parameters:
+        - name: paginationOffset
+          in: query
+          description: This response is paginated.  This parameter describes the page number
+          required: true
+          schema:
+            type: integer
+        - name: numProductsPerPage
+          in: query
+          description: This response is paginated.  This parameter describes the number of
+            items expected per page.
+          required: true
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/offers"
+      security:
+        - userAuthToken: []
+      responses:
+        "200":
+          description: List of favourite products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedProductListResult"
+        "204":
+          description: Success with no favourite products found
+        "401":
+          description: User not authorized
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /collections/:
+    get:
+      description: Returns a list of collections, and whether or not each collection
+        contains the optional product item.
+      security:
+        - userAuthToken: []
+      responses:
+        "200":
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollectionItem"
+        "401":
+          description: User not authorized
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    post:
+      description: Creating a new collection list
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionRequest"
+      responses:
+        "204":
+          description: Collection creation completed
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        "401":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Fordbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/collections/{collectionId}/":
+    get:
+      description: Returns a list of products that have been added to the collection at the
+        specified collection id
+      parameters:
+        - name: collectionId
+          description: The collection identifier param for which the products should be
+            retrieved for
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - userAuthToken: []
+      responses:
+        "200":
+          description: List of products and collection title for specified collection id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionResponse"
+        "204":
+          description: No favourite products.
+        "401":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    put:
+      description: Modification to the title of a collection
+      parameters:
+        - name: collectionId
+          description: The collection identifier param for which the products should be
+            retrieved for
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionRequest"
+      security:
+        - userAuthToken: []
+      responses:
+        "204":
+          description: Success
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        "401":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Fordbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        "404":
+          description: Invalid collection id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    delete:
+      description: Delete a collection
+      security:
+        - userAuthToken: []
+      parameters:
+        - name: collectionId
+          description: Id of collection to be deleted
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Success
+        "400":
+          description: Collection does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundErrorResponse"
+        "401":
+          description: Collection does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Collection does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/collections/{collectionId}/product/{productId}/":
+    put:
+      description: Adding a product to a collection
+      parameters:
+        - name: collectionId
+          description: Id of the collection that the product should be added to.
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          description: Id of product that is being added to a collection.
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Product added
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "401":
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Fordbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        "400":
+          description: CollectionId is not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    delete:
+      description: Remove product from a collection.
+      security:
+        - userAuthToken: []
+      parameters:
+        - name: collectionId
+          description: Id of collection to remove product from
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          description: Id of product to remove.
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Success
+        "400":
+          description: Product or CollectionId not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "401":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: UnAuthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /favourite_stores/:
+    x-swagger-router-controller: favourite_stores_controller
+    get:
+      description: Returns a list of stores that have been marked as favourites. Requires
+        an userAuthToken in the header to authenticate.
+      parameters:
+        - $ref: "#/components/parameters/longitude"
+        - $ref: "#/components/parameters/latitude"
+        - name: itemNumber
+          description: If this is specified the API will return a quantity number for the
+            specified product at the store in question.
+          in: query
+          schema:
+            type: string
+      security:
+        - userAuthToken: []
+      responses:
+        "200":
+          description: List of favourite stores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreResult"
+        "401":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "403":
+          description: UnAuthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/favourite_stores/{locationNumber}/":
+    x-swagger-router-controller: favourite_stores_id_controller
+    put:
+      description: Add a favourite store
+      security:
+        - userAuthToken: []
+      parameters:
+        - $ref: "#/components/parameters/locationNumber"
+      responses:
+        "204":
+          description: Success
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "401":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+    delete:
+      description: Remove a favourite store
+      security:
+        - userAuthToken: []
+      parameters:
+        - $ref: "#/components/parameters/locationNumber"
+      responses:
+        "204":
+          description: Success
+        "401":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /products/:
+    x-swagger-router-controller: products_controller
+    get:
+      description: Returns a list of products that match the search criteria.  If not
+        specified (i.e. left empty, or not included, that criteria is assumed to
+        be a wildcard).  Wildcard does not apply for `sortBy`, `sortOrder`,
+        `numProductsPerPage`, and `paginationOffset`.
+      parameters:
+        - $ref: "#/components/parameters/itemKeyword"
+        - $ref: "#/components/parameters/productType"
+        - $ref: "#/components/parameters/productCategory"
+        - $ref: "#/components/parameters/productSubcategory"
+        - $ref: "#/components/parameters/productSubsubcategory"
+        - $ref: "#/components/parameters/productCountryOrigin"
+        - $ref: "#/components/parameters/productCountryRegion"
+        - $ref: "#/components/parameters/productCountrySubregion"
+        - $ref: "#/components/parameters/locationNumberQuery"
+        - name: paginationOffset
+          in: query
+          description: This response is paginated.  This parameter describes the page number
+          required: true
+          schema:
+            type: integer
+        - name: numProductsPerPage
+          in: query
+          description: This response is paginated.  This parameter describes the number of
+            items expected per page.
+          required: true
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/sortBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/priceMin"
+        - $ref: "#/components/parameters/priceMax"
+        - $ref: "#/components/parameters/offers"
+        - $ref: "#/components/parameters/lcboProgram"
+        - $ref: "#/components/parameters/availability"
+        - $ref: "#/components/parameters/rating"
+        - $ref: "#/components/parameters/productWineVarietal"
+        - $ref: "#/components/parameters/trendingProducts"
+      responses:
+        "200":
+          description: Results match criteria.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResult"
+        "400":
+          description: bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/products/{itemNumber}/":
+    x-swagger-router-controller: product_details_controller
+    get:
+      description: get the product details of a specified product.
+      parameters:
+        - name: itemNumber
+          in: path
+          description: the unique item number of the product
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/locationNumberQuery"
+      responses:
+        "200":
+          description: Product found, here are the details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedProductItem"
+        "400":
+          description: bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /promotions_filters/:
+    x-swagger-router-controller: promotions_filter_controller
+    get:
+      description: Get the list of discover promotions for a section
+      parameters:
+        - $ref: "#/components/parameters/liquorTypeId"
+      responses:
+        "200":
+          description: List of promotions for the section
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PromotionsFilterResult"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /municipality/:
+    x-swagger-router-controller: municipalities_controller
+    get:
+      description: Get a list of municipalities matching a search term
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                description: A list of the refinements returned for the query
+                items:
+                  description: String describing the municipality
+                  type: string
+        "400":
+          description: The request format is incorrect or the request size is too large
+          content:
+            application/json:
+               schema:
+                 $ref: "#/components/schemas/NewServerErrorResponse"
+        "500":
+          description: The server encountered a problem in processing the request
+          content:
+            application/json:
+               schema:
+                 $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: The server returned an error as the endpoint could not be found
+          content:
+            application/json:
+               schema:
+                 $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /discover/:
+    x-swagger-router-controller: promotions_discover_controller
+    get:
+      description: Get the list of discover promotions for a section
+      parameters:
+        - name: type
+          in: query
+          description: The type (destination) for the promotions
+          required: false
+          schema:
+            $ref: "#/components/schemas/PromotionType"
+        - $ref: "#/components/parameters/liquorTypeId"
+      responses:
+        "200":
+          description: List of promotions for the section
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscoverCardResult"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/discover/{discoverId}/":
+    x-swagger-router-controller: discover_controller
+    get:
+      description: get the product details of a specified product.
+      parameters:
+        - name: discoverId
+          in: path
+          description: the unique id for the discover section
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/locationNumberQuery"
+        - $ref: "#/components/parameters/productType"
+        - $ref: "#/components/parameters/productCategory"
+        - $ref: "#/components/parameters/productSubcategory"
+        - $ref: "#/components/parameters/productSubsubcategory"
+        - $ref: "#/components/parameters/productCountryOrigin"
+        - $ref: "#/components/parameters/productCountryRegion"
+        - $ref: "#/components/parameters/productCountrySubregion"
+        - $ref: "#/components/parameters/sortBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/priceMin"
+        - $ref: "#/components/parameters/priceMax"
+        - $ref: "#/components/parameters/airMiles"
+        - $ref: "#/components/parameters/offers"
+        - $ref: "#/components/parameters/lcboProgram"
+        - $ref: "#/components/parameters/availability"
+        - $ref: "#/components/parameters/rating"
+        - $ref: "#/components/parameters/productWineVarietal"
+      responses:
+        "200":
+          description: Discover section id found. Returning success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverResult"
+        "404":
+          description: Discover section not found
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /order/history/:
+    x-swagger-router-controller: order_history_controller
+    get:
+      description: Get an order history list for the user
+      security:
+        - userAuthToken: []
+      parameters:
+        - name: numOrdersPerPage
+          in: query
+          description: size of the page
+          schema:
+            type: integer
+            default: 3
+        - name: paginationOffset
+          in: query
+          description: the page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of orders for the user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderHistoryListResponse"
+        "204":
+          description: No orders avaialble for user
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Fordbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/order/history/{id}/":
+    x-swagger-router-controller: order_history_details_controller
+    get:
+      description: Get details for an order
+      security:
+        - userAuthToken: []
+      parameters:
+        - name: id
+          in: path
+          description: the id representing the order being fetched
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Details for an order history item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderHistoryDetails"
+        "204":
+          description: No results match criteria
+        "401":
+          description: User is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "403":
+          description: Fordbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddCollectionErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /app_version/:
+    get:
+      description: returns the min and max version of the app allowed
+      security:
+        - oauth2: [default]
+      responses:
+        "200":
+          description: Returns an object with the requried and optional version numbers of
+            the app
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppVersionResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /kill_switch/:
+    get:
+      description: returns if the kill switches are active
+      responses:
+        "200":
+          description: Returns an object with the kill switch value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KillSwitchResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /cart_promotions/:
+    get:
+      description: get the donation products
+      responses:
+        "200":
+          description: Returns a list of checkout special offers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartPromotionsResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/cart/donations/{cartId}/":
+    patch:
+      description: adds a donation to the cart
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchDonationRequest"
+      responses:
+        "200":
+          description: "The cart response after the patch is applied"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /main_promotion/:
+    get:
+      description: get any main promotion array currently active
+      responses:
+        "200":
+          description: Returns an array of images to be displayed as a main promotion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromotionResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /giftcard/balance/:
+    post:
+      description: Returns gift card information and validation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftCardItem"
+      responses:
+        "200":
+          description: The card is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftCardDetailItem"
+        "401":
+          description: Unauthorized request (gcToken not valid / missing)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        "422":
+          description: Max attempts reached, lock gift card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /content_management/:
+    get:
+      parameters:
+        - name: store_id
+          in: query
+          description: the id of the store
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "returns the copy text for PDP based on the provided store location"
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/PdpAndStoreCopy'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /service_messages/:
+    get:
+      responses:
+        "200":
+          description: "service interruption message"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceMessage'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/category_browsing/{id}/":
+    get:
+      parameters:
+        - name: id
+          in: path
+          description: "the id of the ProductType"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The list of child categories for the given type"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryBrowseResponse'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  /cart/:
+    get:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+        - userAuthToken: []
+      responses:
+        "200":
+          description: "The cart for the logged-in user"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+    post:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCartRequest"
+      responses:
+        "200":
+          description: "The cart response after the cart is created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerErrorResponse"
+  "/cart/{cartId}/":
+    get:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The cart response for a non-logged in user"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+    patch:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchCartRequest"
+      responses:
+        "200":
+          description: "The cart response after the patch is applied"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+    put:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutCartRequest"
+      responses:
+        "200":
+          description: "The cart response after the PUT is applied"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/cart/{cartId}/{cartItemUid}/":
+      delete:
+        security:
+            - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+        parameters:
+          - name: cartId
+            in: path
+            description: the unique identifier of the cart
+            required: true
+            schema:
+              type: string
+          - name: cartItemUid
+            in: path
+            description: the unique identifier of the product to delete
+            required: true
+            schema:
+              type: string
+    
+        responses:
+          "200":
+            description: "The cart response after the cart is created"
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/CartResponse"
+          default:
+            description: "Error Response"
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/NewServerErrorResponse"
+  "/cart/validate_cart/{cartId}/":
+    x-swagger-router-controller: order_validate_cart_controller
+    patch:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cart validation complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /merge_cart/:
+    post:
+      security:
+      - userAuthToken: []
+      - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostMergeCartRequest"
+      responses:
+        "200":
+          description: "The cart response after the merge is completed by the server"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "Guest cart is invalid or not provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "Server Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /billing_address/:
+    patch:
+      security:
+      - userAuthToken: []
+      - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartAddressRequest"
+      responses:
+        "200":
+          description: sets the billing address for the cart if address is provided or Id of an existing address is provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  /shipping_address/:
+    patch:
+      security:
+      - userAuthToken: []
+      - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartAddressRequest"
+      responses:
+        "200":
+          description: sets the billing address for the cart if address is provided or Id of an existing address is provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/contact_information/{cartId}/":
+    patch:
+      security:
+      - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+          - name: cartId
+            in: path
+            description: the unique identifier of the cart
+            required: true
+            schema:
+              type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInformationRequest"
+      responses:
+        "200":
+          description: sets the billing address for the cart if address is provided or Id of an existing address is provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/cart/gift_message/{cartId}/":
+    patch:
+      security:
+      - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftingInfoItem"
+      responses:
+        "200":
+          description: sets the billing address for the cart if address is provided or Id of an existing address is provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+    delete:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: sets the billing address for the cart if address is provided or Id of an existing address is provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/shipping_method/{cartId}/{postalCode}/":
+    get:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+        - name: postalCode
+          in: path
+          description: the postalCode of the shipping address for which shipping methods are being requested
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "the shipping methods for the postal code"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShippingMethodItem"
+        default:
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewServerErrorResponse'
+  "/shipping_method/{cartId}/":
+    patch:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShippingMethodRequest"
+      responses:
+        "200":
+          description: sets the shipping method for the cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "401":
+          description: "The user cannot be authenticated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/place_order/{cartId}/":
+    patch:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceOrderRequest"
+      responses:
+        "201":
+          description: sets the shipping method for the cart
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlacedOrderItem"
+        "400":
+          description: "The request fields contained validation rules  or business rule error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        "404":
+          description: "Unable to find a cart with the cartId Provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+  "/promo_code/{cartId}/":
+    patch:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromoCodeRequest"
+      responses:
+        "200":
+          description: returns the cart with the applied promo code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "400":
+          description: "The promo code could not be applied successfully and returned an error message that can be presented to the user"
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: "The promocode TESTDEMO1 is invalid"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+    delete:
+      security:
+        - oauth2: [api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default]
+      parameters:
+        - name: cartId
+          in: path
+          description: the unique identifier of the cart
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: returns the cart with the applied promo code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+        "400":
+          description: "The promo code could not be removed successfully and returned an error message that can be presented to the user"
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: "The promocode TESTDEMO1 could not be removed"
+        default:
+          description: "server returned an error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewServerErrorResponse"
+
+  /swagger:
+    x-swagger-pipe: swagger_raw
+
+components:
+  securitySchemes:
+    userAuthToken:
+      type: apiKey
+      in: header
+      name: X-User-Auth-Token
+    oauth2:
+      type: oauth2
+      description: OAuth2 introduced in 7.9
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/4a5b7942-b0b1-4244-b601-19f8e6c33e48/oauth2/v2.0/token
+          scopes:
+            api://3cc5db03-fae5-476f-b32f-2e421d6da850/.default: The default scope
+
+  parameters:
+    longitude:
+      in: query
+      name: longitude
+      description: the longitude coordinate to perform queries against.
+      schema:
+        type: number
+        format: double
+    latitude:
+      in: query
+      name: latitude
+      description: the latitude coordinate to perform queries against.
+      schema:
+        type: number
+        format: double
+    itemKeyword:
+      in: query
+      name: itemKeyword
+      description: A general keyword (i.e. product name, UPC code, `type`, `category`,
+        `subcategory`, `subsubcategory`) that can be used to help locate the
+        product in a query.
+      schema:
+        type: string
+    liquorTypeId:
+      in: query
+      name: liquorTypeId
+      description: The product type id (wine = "14", spirits = "15", beer = "16", coolers = "18")
+      schema:
+        type: string
+    productType:
+      in: query
+      name: productType
+      description: The id of the product type to be refined. If empty a list of types
+        will be returned.
+      schema:
+        type: string
+    productCategory:
+      in: query
+      name: productCategory
+      description: The id of the Category to be refined. Type must be defined for this
+        to be valid.
+      schema:
+        type: string
+    productSubcategory:
+      in: query
+      name: productSubcategory
+      description: The id of the Sub Category to be refined. Type and category must be
+        defined for this to be valid.
+      schema:
+        type: string
+    productSubsubcategory:
+      in: query
+      name: productSubsubcategory
+      description: The `subsubcategory` the product was organized under.
+      schema:
+        type: string
+    productCountryOrigin:
+      in: query
+      name: productCountryOrigin
+      description: the country the product has been organized under.
+      schema:
+        type: string
+    productCountryRegion:
+      in: query
+      name: productCountryRegion
+      description: the region the product has been organized under.
+      schema:
+        type: string
+    productCountrySubregion:
+      in: query
+      name: productCountrySubregion
+      description: the subregion the product has been organized under.
+      schema:
+        type: string
+    locationNumberQuery:
+      in: query
+      name: locationNumber
+      description: The locationNumber param in the product query specifies that the
+        search is in a specific location (the quantity returned is limited
+        to that location)
+      schema:
+        type: string
+    sortBy:
+      in: query
+      name: sortBy
+      description: The sorting method to use for the products in the page.
+      schema:
+        $ref: "#/components/schemas/SortBy"
+    sortOrder:
+      in: query
+      name: sortOrder
+      description: The sorting method to use for the products in the page.
+      schema:
+        $ref: "#/components/schemas/SortOrder"
+    priceMin:
+      in: query
+      name: priceMin
+      description: The minimum price of returned products
+      schema:
+        type: number
+    priceMax:
+      in: query
+      name: priceMax
+      description: The maximum price of returned products
+      schema:
+        type: number
+    airMiles:
+      in: query
+      name: airMiles
+      description: Only show products that have airmiles promotions associated with
+        them.
+      schema:
+        type: boolean
+    offers:
+      in: query
+      name: offers
+      description: Only show products that have sales (lto) associated with them.
+      schema:
+        type: string
+    lcboProgram:
+      in: query
+      name: lcboProgram
+      description: String describing the lcbo program
+      schema:
+        type: string
+    availability:
+      in: query
+      name: hideProductsOutOfStock
+      description: Only show products which are available online, in store or both,
+        based on value
+      schema:
+        description: this is used to filter out items that are out of stock in search result
+        type: boolean
+    rating:
+      in: query
+      name: rating
+      description: Only show products which match this rating
+      schema:
+        $ref: "#/components/schemas/Rating"
+    productWineVarietal:
+      in: query
+      name: productWineVarietal
+      description: The varietal of the products to filter by
+      schema:
+        type: string
+    locationNumber:
+      in: path
+      name: locationNumber
+      description: The locationNumber param in the discover query specifies the
+        quantities being returned will be for a specific store rather than
+        the global amount.
+      required: true
+      schema:
+        type: string
+    trendingProducts:
+      in: query
+      name: trendingProducts
+      description: show the trending products only if set to true
+      schema:
+        type: boolean
+  schemas:
+    DiscoverResult:
+      required:
+        - products
+        - id
+        - resultCount
+        - filters
+      properties:
+        resultCount:
+          type: integer
+          description: total number of items being returned for this product query
+        imageUrl:
+          type: string
+          description: URL pointing to the image representing the banner image heading the
+            discover page
+        id:
+          type: string
+          description: id of the discover
+        title:
+          type: string
+          description: title of the discover
+        products:
+          type: array
+          description: A list of products displayed on the discover page
+          items:
+            $ref: "#/components/schemas/ProductItem"
+        filters:
+          $ref: "#/components/schemas/FilterRefinementResult"
+    DonationResult:
+      required:
+        - imageUrl
+        - products
+        - content
+      properties:
+        imageUrl:
+          type: string
+          description: URL pointing to the image representing the banner image heading the
+            discover page
+        content:
+          type: string
+          description: Text content to display under the donations section
+        title:
+          type: string
+          description: heading of the donation that is displayed under the image
+        products:
+          type: array
+          description: A list of products displayed on the discover page
+          items:
+            $ref: "#/components/schemas/DetailedProductItem"
+    FilterRefinementResult:
+      properties:
+        type:
+          type: array
+          description: List of available liquor types
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        category:
+          type: array
+          description: List of available categories
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        subCategory:
+          type: array
+          description: List of available subCategories
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        subSubCategory:
+          type: array
+          description: List of available subSubCategories
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        country:
+          type: array
+          description: List of available countries
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        region:
+          type: array
+          description: List of available regions
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        subRegion:
+          type: array
+          description: List of available subRegions
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        price:
+          type: array
+          description: List of returned price buckets
+          items:
+            $ref: "#/components/schemas/PriceRefinementItem"
+        offers:
+          type: array
+          description: List of available offers used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        stock:
+          type: array
+          description: List of available stock types used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        dietary:
+          type: array
+          description: List of available dietary options used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        ratings:
+          type: array
+          description: List of available rating options used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        varietal:
+          type: array
+          description: List of available varietals used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        size:
+          type: array
+          description: List of available sizes used for refinement
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+        abv:
+          $ref: "#/components/schemas/ABVRefinementItem"
+        lcboProgram:
+          type: array
+          items:
+            $ref: "#/components/schemas/RefinementItem"
+
+    RefinementItem:
+      required:
+        - name
+        - total
+      properties:
+        name:
+          type: string
+          description: The name of the refinement. (Liqueur/Liquor)
+        total:
+          type: integer
+          description: The total number of products available within this refinement.
+    PriceRefinementItem:
+      required:
+        - name
+        - priceMin
+        - priceMax
+        - total
+      properties:
+        name:
+          type: string
+          description: The name of the refinement. Should match the id accepted by the
+            /products end point
+        priceMin:
+          type: number
+          description: The low value in the price bucket.
+        priceMax:
+          type: number
+          description: The high value in the price bucket.
+        total:
+          type: integer
+          description: The total number of products available within this refinement.
+    ABVRefinementItem:
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+    LookaheadResult:
+      required:
+        - name
+      description: Type of search result. Name and either 'productId' or 'itemKeyword' or
+        'productTier' must be returned.
+      properties:
+        name:
+          type: string
+          description: The name displayed to the user
+        productId:
+          type: string
+          description: The productId of a specific product. This will result in the user
+            routing directly to the product.
+        itemKeyword:
+          type: string
+          description: Suggested keyword. This will result in the user performing a search
+            and returning a list of products.
+    ProductListResult:
+      required:
+        - resultCount
+        - products
+      properties:
+        resultCount:
+          type: integer
+          description: total number of items being returned for this product query
+        products:
+          type: array
+          description: A list of products displayed on the discover page
+          items:
+            $ref: "#/components/schemas/ProductItem"
+        filters:
+          $ref: "#/components/schemas/FilterRefinementResult"
+        categoryMatch:
+          $ref: "#/components/schemas/ProductListResultCategoryMatch"
+    DetailedProductListResult:
+      required:
+        - resultCount
+        - products
+      properties:
+        resultCount:
+          type: integer
+          description: total number of items being returned for this product query
+        products:
+          type: array
+          description: A list of products displayed on the discover page
+          items:
+            $ref: "#/components/schemas/DetailedProductItem"
+        filters:
+          $ref: "#/components/schemas/FilterRefinementResult"
+        categoryMatch:
+          $ref: "#/components/schemas/ProductListResultCategoryMatch"
+
+    CollectionItem:
+      required:
+        - title
+        - id
+        - productIds
+        - default
+      properties:
+        title:
+          type: string
+          description: Title for the collection unique to other collections for that user
+        imageUrlThumb:
+          type: string
+          description: Url pointing to the image thumbnail for a product in the collection
+        id:
+          type: string
+          description: Unique identifier for the collection
+        productIds:
+          type: array
+          items:
+            type: string
+        default:
+          type: boolean
+          description: Boolean as to if the collection is the default collection and
+            therefore cannot be edited or deleted.
+    CollectionResponse:
+      required:
+        - productItems
+        - title
+        - id
+      properties:
+        productItems:
+          type: array
+          description: Product items that have been added to the collection.
+          items:
+            $ref: "#/components/schemas/DetailedProductItem"
+        title:
+          type: string
+          description: Title of the collection.
+        id:
+          type: string
+        imageUrlThumb:
+          type: string
+    DetailedProductItem:
+      required:
+        - itemNumber
+        - itemName
+        - productUrl
+        - liquorType
+        - liquorTypeId
+        - categoryName
+        - categoryId
+        - subCategoryName
+        - subCategoryId
+        - subSubCategoryName
+        - subSubCategoryId
+        - limitedTimeOffer
+        - ltoExpiration
+        - price
+        - alcoholPercentage
+        - producer
+        - upcNumber
+        - sccNumber
+        - vqa
+        - imageUrl
+        - imageUrlThumb
+        - producingCountry
+        - producingRegion
+        - producingSubregion
+        - wineStyle
+        - productSize
+        - sellingPackage
+        - releaseDate
+        - bottleDepositPrice
+        - storeQuantity
+        - onlineProductQuantity
+        - availability
+        - uomNumber
+        - filledBy
+        - maxCartQuantity
+        - nextDayDeliveryEligible
+        - listDelistCode
+        - kosher
+        - lcboBuyable
+        - lowStockThreshold
+        - outOfStockThreshold
+      properties:
+        itemNumber:
+          type: string
+          description: Unique number to identify the product
+        itemName:
+          type: string
+          description: Name of the product to display.
+        productUrl:
+          type: string
+          description: URL Pointing to the item on the LCBO website
+        imageUrl:
+          type: string
+          description: Url pointing to the fullsize image for the product
+        imageUrlThumb:
+          type: string
+          description: Url pointing to the image thumbnail for the
+        upcNumber:
+          type: string
+          description: The UPC (Universal Product Code) of the product.
+        sccNumber:
+          type: string
+          description: SCC code (Shipping Container Code) of the product. String.
+        liquorType:
+          type: string
+          description: String describing the product type. (Ready-to-Drink/Coolers, Wine,
+            etc)
+        liquorTypeId:
+          description: Id for the liquor type (used by the database)
+          type: string
+        categoryName:
+          type: string
+          description: Description of the product category. (Coolers, red wine, etc.)
+        categoryId:
+          type: string
+          description: Id for the category (used by the database)
+        subCategoryName:
+          type: string
+          description: Description of the product sub category.
+        subCategoryId:
+          type: string
+          description: Id for the subCategory (used by the database)
+        subSubCategoryName:
+          type: string
+          description: Description of the product sub sub category.
+        subSubCategoryId:
+          type: string
+          description: Id for the sub sub category (used by the database)
+        producingCountry:
+          type: string
+          description: the country the product was produced in (e.g. USA)
+        producingRegion:
+          type: string
+          description: the region the product was produced in (e.g. Kentucky)
+        producingSubregion:
+          type: string
+          description: the subregion the product was produced in (this does not have a
+            paired subRegion)
+        wineStyle:
+          type: string
+          description: the group of "what this wine tastes like" this product falls under.
+        listDelistCode:
+          type: string
+          description: Code describing the Listed/Delisted state of the product. ("2" is ok
+            "3" and "4" are limited availability "5" is out of stock)
+        alcoholPercentage:
+          type: number
+          description: Numeric value formatted with % representing the alcohol Percentage
+            of the product. (5.0%, 11.0%)
+        sugarContent:
+          type: string
+          description: Amount of sugar in the wine. Formatted with grams per Liter. (4 g/L)
+        productSize:
+          type: string
+          description: product size description (e.g. 1500 mL)
+        price:
+          type: string
+          description: Price formatted with the currency.
+        kosher:
+          type: boolean
+          description: Is the product kosher. Expected values are true and false
+        stockType:
+          $ref: "#/components/schemas/StockTypeOld"
+        limitedTimeOffer:
+          type: boolean
+          description: Is a limited time offer offered for this product. Expected values
+            are true and false
+        ltoExpiration:
+          type: string
+          description: Expiration of the sale price (Oct 9, 2016)
+        ltoRegularPrice:
+          type: string
+          description: Regular price of the product (when not on sale)
+        storeQuantity:
+          type: integer
+          description: total quantity of this product available across all stores (or in a
+            specific store if location was specified)
+        producer:
+          type: string
+          description: the conglomerate responsible for producing the wine
+        sweetnessDescriptor:
+          type: string
+          description: a general description of sugar content in wine products.  See
+            http://www.doingbusinesswithlcbo.com/tro/Promotional-Programs/WineSweetnessStyle/newsweetnessdescriptors.shtml.
+        tastingNotes:
+          type: string
+          description: Long description of the wine tasking notes. Reads  like a review.
+        pairings:
+          type: string
+          description: Description of the wine pairings.
+        sellingPackage:
+          type: string
+          description: Of the product container/package
+        releaseDate:
+          type: string
+          description: When was this product released (will be released?)
+        vqa:
+          type: boolean
+          description: Is this a Wine under the VQA umbrella. Expected values are true and
+            false
+        wineVarietal:
+          type: string
+          description: Varietal group of the Wine
+        bottleDepositPrice:
+          type: number
+          description: Price of bottle deposit with currency. This can be $0
+        onlineProductQuantity:
+          type: integer
+          description: a number representing the quantity of the product that can be
+            purchased online.
+        availability:
+          $ref: "#/components/schemas/Availability"
+        uomNumber:
+          type: integer
+          description: a number which indicates the number of items that get added to the
+            cart when this item is added to the cart. Default to 1.
+        filledBy:
+          $ref: "#/components/schemas/FilledBy"
+        maxCartQuantity:
+          type: integer
+          description: the max quantity a user is allowed to purchase
+        nextDayDeliveryEligible:
+          type: boolean
+          description: is this product eligible for one day shipping.
+        ratings:
+          type: number
+          format: float
+          description: The bazaar voice rating of the product
+        reorderError:
+          $ref: "#/components/schemas/ReorderErrorCode"
+        numberOfReviews:
+          type: integer
+          description: The bazaar voice count of ratings for the product
+        stockStatus:
+          type: string
+          description: Indicates if the item is available or sold out
+          $ref: "#/components/schemas/StockStatus"
+        basicPrice:
+          type: number
+          format: float
+          description: the basic price of the product
+        searchKeywords:
+          type: string
+          description: product matched to a search keyword
+        lcboBuyable:
+          type: boolean
+          description: true if it is buyable, false if it is not
+          default: true
+        outOfStockThreshold:
+          type: int
+          example: 10
+          description: the  out of stock threshold value for inventory set by the server 
+        lowStockThreshold:
+          type: int
+          description: the low stock threshold value for inventory set by the server
+    StoreResult:
+      required:
+        - beerColdRoomCode
+        - clickAndCollectAvailable
+        - frenchLanguageCode
+        - fridayCloseHour
+        - fridayOpenHour
+        - latitude
+        - locationAddress1
+        - locationAddress2
+        - locationCityName
+        - locationName
+        - locationNumber
+        - longitude
+        - mondayCloseHour
+        - mondayOpenHour
+        - phoneNumber1
+        - postalCode
+        - storeQuantity
+        - saturdayCloseHour
+        - saturdayOpenHour
+        - sundayCloseHour
+        - sundayOpenHour
+        - tastingBarCode
+        - thursdayCloseHour
+        - thursdayOpenHour
+        - transitAccessCode
+        - tuesdayCloseHour
+        - tuesdayOpenHour
+        - vintageCornerCode
+        - wednesdayCloseHour
+        - wednesdayOpenHour
+        - wheelChairCode
+        - wineConsultantCode
+        - distance
+        - isFavorite
+      properties:
+        beerColdRoomCode:
+          type: boolean
+          description: This will be either true or false
+        clickAndCollectAvailable:
+          type: boolean
+          description: whether or not the store allows click and collect.
+        distance:
+          type: number
+          format: double
+          description: UNSURE what parameters are required to populate this.
+        frenchLanguageCode:
+          type: boolean
+          description: this will be either true or false.
+        fridayCloseHour:
+          type: string
+          description: closing time on fridays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        fridayOpenHour:
+          type: string
+          description: opening time on fridays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        latitude:
+          type: number
+          format: double
+          description: the latitude component of the GPS coordinate of this store
+        locationAddress1:
+          type: string
+          description: line one description of a store address
+        locationAddress2:
+          type: string
+          description: line two description of a store address
+        locationCityName:
+          type: string
+          description: the city the store is located in
+        locationName:
+          type: string
+          description: a human-readable description of the store's location
+        locationNumber:
+          type: string
+          description: uniquly identifies a store
+        longitude:
+          type: number
+          format: double
+          description: the longitude portion of the GPS coordinate of the store
+        mondayCloseHour:
+          type: string
+          description: closing time on mondays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        mondayOpenHour:
+          type: string
+          description: opening time on mondays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        phoneNumber1:
+          type: string
+          description: line 1 of the phone number for the store
+        postalCode:
+          type: string
+          description: postal code of the store
+        storeQuantity:
+          type: integer
+          description: UNSURE what parameters required to populate this
+        saturdayCloseHour:
+          type: string
+          description: closing time on saturday, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        saturdayOpenHour:
+          type: string
+          description: opening time on saturday, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        sundayCloseHour:
+          type: string
+          description: closing time on sunday, formatted in hh:mm:ss (24 hour time), as per
+            https://en.wikipedia.org/wiki/ISO_8601#Times
+        sundayOpenHour:
+          type: string
+          description: opening time on sunday, formatted in hh:mm:ss (24 hour time), as per
+            https://en.wikipedia.org/wiki/ISO_8601#Times
+        tastingBarCode:
+          type: boolean
+          description: UNSURE what values expected here.  I've seen `N`.
+        thursdayCloseHour:
+          type: string
+          description: closing time on thursdays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        thursdayOpenHour:
+          type: string
+          description: opening time on thursdays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        transitAccessCode:
+          type: boolean
+          description: UNSURE what expected values are.  I've seen `N`.
+        tuesdayCloseHour:
+          type: string
+          description: closing time on tuesdays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        tuesdayOpenHour:
+          type: string
+          description: opening time on tuesdays, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        vintageCornerCode:
+          type: boolean
+          description: UNSURE what expected values are.  I've seen `Y` and `N`.
+        wednesdayCloseHour:
+          type: string
+          description: closing time on wednesday, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        wednesdayOpenHour:
+          type: string
+          description: opening time on wednesday, formatted in hh:mm:ss (24 hour time), as
+            per https://en.wikipedia.org/wiki/ISO_8601#Times
+        wheelChairCode:
+          type: boolean
+          description: UNSURE what values to expect.  I've seen `Y` and `N`
+        wineConsultantCode:
+          type: boolean
+          description: UNSURE what values to expect.  I've seen `Y` and `N`
+        isFavorite:
+          type: boolean
+          description: applies to logged in user when they mark a store as favourite
+    FilterResult:
+      description: List of filter properties to apply to product search
+      properties:
+        itemKeyword:
+          type: string
+          description: Specify a specific itemKeyword to search for.
+        producingCountryId:
+          type: string
+          description: Specify that a Country filter should be set.
+        producingRegionId:
+          type: string
+          description: Specify that a Region filter should be set.
+        producingSubregionId:
+          type: string
+          description: Specify that a Sub Region filter should be set.
+        liquorTypeId:
+          type: string
+        categoryId:
+          type: string
+          description: Specify that a Category filter should be set.
+        subCategoryId:
+          type: string
+          description: Specify that a Sub Category filter should be set.
+        subSubCategoryId:
+          type: string
+          description: Specify that a Sub Sub Category filter should be set.
+        wineStyle:
+          type: string
+          description: Specify the wine style of the filter.
+        priceMin:
+          type: number
+          description: Specify that a price min price filter should be set.
+        priceMax:
+          type: number
+          description: Specify that a price maximum filter should be set.
+        hasLto:
+          type: boolean
+          description: Specify that the limited time offer filter should be set.
+          default: false
+        hasAirMiles:
+          type: boolean
+          description: Specify that a the airMiles filter should be set.
+          default: false
+        stockType:
+          type: string
+          description: String describing the stock holder ("LCBO" or "VINTAGES" or "POTW")
+    PromotionsFilterResult:
+      description: Set an image to display to the user as well as a  list of filters that
+        will be set for the user when they activate the promotion filter. The
+        tier and place are set as ids as they will be placed directly to the
+        /product search fields.
+      required:
+        - imageUrl
+        - id
+      properties:
+        filterResult:
+          $ref: "#/components/schemas/FilterResult"
+        imageUrl:
+          type: string
+          description: URL pointing to the image representing this promotion
+        id:
+          type: integer
+    DiscoverCardResult:
+      required:
+        - imageUrl
+        - idType
+        - id
+      properties:
+        title:
+          type: string
+          description: Localized title for the discover card (used for category landing
+            "Our Picks")
+        imageUrl:
+          type: string
+          description: URL pointing to the image representing the header
+        contentId:
+          type: string
+          description: id pointing to the content related to the banner (could be a product
+            id, store id, discover id, or orderType id) - orderTypeID =
+            (CLICK_AND_COLLECT, NEXT_DAY_DELIVERY)
+        idType:
+          type: string
+          description: >
+            the type of content the id field is related to (product, store, or discover):
+              * `product` - Product, represents a specific product
+              * `store` - Store, represents a specific store
+              * `discover` - Discover, represents a list of products
+              * `url` - URL, represents an external URL
+              * `home` - Home, denoted for use with other APIs
+              * `donation` - Donation, denoted for use with other APIs
+              * `maintenance` - Maintenance, denoted for use with other APIs
+              * `temporary_interstitial_disruption` - Interstitial, denoted for use with other APIs
+          enum:
+            - product
+            - store
+            - discover
+            - url
+            - home
+            - donation
+            - maintenance
+            - temporary_interstitial_disruption
+        id:
+          type: string
+          description: id of the discovery item
+        filterResult:
+          $ref: "#/components/schemas/FilterResult"
+    AccountInfoResult:
+      required:
+        - logonId
+        - firstName
+        - lastName
+        - emailPreference
+        - isLegalAge
+      properties:
+        logonId:
+          type: string
+          description: The email address of the user.
+        firstName:
+          type: string
+          description: First name of the user
+        lastName:
+          type: string
+          description: Last Name of the user
+        airmilesNumber:
+          type: string
+          description: Obfuscated string representing the users airmiles number
+        emailPreference:
+          type: boolean
+          description: Is the user signed up to the email mailing list
+        isLegalAge:
+          type: boolean
+          default: true
+          description: Is the user legal age
+        email1:
+          type: string
+          description: the email address
+    ConfirmPasswordResponse:
+      required:
+        - message
+      properties:
+        fieldErrors:
+          $ref: "#/components/schemas/AccountFieldError"
+        message:
+          type: string
+          description: detailed description of error from server.  Debugging use only.
+        token:
+          type: string
+    PasswordResponse:
+      required:
+        - message
+      properties:
+        fieldErrors:
+          $ref: "#/components/schemas/AccountFieldError"
+        message:
+          type: string
+          description: detailed description of error from server.  Debugging use only.
+    RegistrationResponse:
+      required:
+        - firstName
+        - lastName
+        - logonId
+        - isLegalAge
+        - token
+      properties:
+        firstName:
+          type: string
+          description: first name of the registered user
+        lastName:
+          type: string
+          description: last name of the registered user
+        logonId:
+          type: string
+          description: login userid
+        isLegalAge:
+          type: boolean
+          description: true if the user is of legal age
+        airmilesNumber:
+          type: string
+          description: airmiles number associated with the user
+        token:
+          type: string
+          description: the session token for a successfull login
+        fieldErrors:
+          $ref: "#/components/schemas/AccountFieldError"
+        message:
+          type: string
+          description: detailed description of error from server.  Debugging use only.
+    AccountFieldError:
+      required:
+        - invalidFields
+        - message
+      properties:
+        invalidFields:
+          type: array
+          description: list of invalid fields for the bad registration.
+          items:
+            description: Strings representing the invalid fields. Can contain lastName,
+              firstName, logonId, password, airMilesNumber
+            type: string
+            enum:
+              - lastName
+              - firstName
+              - logonId
+              - logonPassword
+              - email
+              - airmilesNumber
+              - isLegalAge
+              - oldPassword
+              - newPassword
+        message:
+          type: string
+          description: detailed description of error from server.  Debugging use only.
+    ServerErrorResponse:
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: a detailed message of the server error was.   Debugging use only.
+    LoginSuccess:
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: the session token for a successfull login
+    CartItem:
+      required:
+        - itemNumber
+        - quantity
+      properties:
+        itemNumber:
+          type: string
+          description: Item Number of the product in the cart
+        quantity:
+          type: integer
+          description: Count of the item in the cart / avaialble for purchase
+    BillingInfoItem:
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        purchaserEmail:
+          type: string
+        purchaserPhoneNumber:
+          type: string
+        cardHolderName:
+          type: string
+        address1:
+          type: string
+        address2:
+          type: string
+        postalCode:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        country:
+          type: string
+        paymentType:
+          type: string
+          enum:
+            - APPLE_PAY
+            - CREDIT_CARD
+    OrderHistoryListResponse:
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderHistoryListItem"
+    OrderHistoryListItem:
+      required:
+        - orderDate
+        - orderNumber
+        - orderTotal
+        - orderState
+        - orderNumber
+      properties:
+        orderNumber:
+          type: string
+          description: Order identifier
+        orderTotal:
+          type: number
+          format: double
+          description: Grand total for the order
+        orderDate:
+          type: string
+          description: Order date in 2017-02-26T00:00:00Z format
+        orderState:
+          $ref: "#/components/schemas/OrderStatus"
+        orderType:
+          type: string
+    Cart:
+      properties:
+        cartItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        storeLocation:
+          type: string
+          description: If specified the validation is to be run against the stores
+            inventory rather than the online inventory.
+    OrderHistoryDetails:
+      required:
+        - costTotal
+        - orderTotal
+        - maskedCC
+        - bottleDepositTotal
+        - shippingTotal
+        - shippingTaxTotal
+        - id
+        - orderNumber
+        - orderDate
+        - orderShippingInfo
+        - orderBillingInfo
+        - orderState
+        - productItems
+        - savingsTotal
+      properties:
+        orderState:
+          $ref: "#/components/schemas/OrderStatus"
+        id:
+          type: string
+          description: Order identifier
+        orderNumber:
+          type: string
+          description: Order reference number
+        maskedCC:
+          type: string
+          description: Masked credit card number
+        bottleDepositTotal:
+          type: string
+          description: Bottle deposit total applied to the order
+        costTotal:
+          type: string
+          description: Sub total for the order
+        orderTotal:
+          type: string
+          description: Grand total for the order
+        shippingTotal:
+          type: string
+          description: Shipping total for the order
+        shippingTaxTotal:
+          type: string
+          description: Shipping tax total for the order
+        savingsTotal:
+          type: string
+          description: Total savings in the order
+        orderDate:
+          type: string
+          description: Order date in 2017-02-26T00:00:00-ZZZZ format
+        orderShippingInfo:
+          $ref: "#/components/schemas/ShippingInfoItem"
+        pickupPersonDetails:
+          $ref: "#/components/schemas/ContactInformationRequestDesignate"
+        orderBillingInfo:
+          $ref: "#/components/schemas/BillingInfoItem"
+        productItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderHistoryProductItem"
+        giftingInfo:
+          $ref: "#/components/schemas/GiftingInfoResponse"
+        orderStoreInformation:
+          type: object
+          properties:
+            storeNumber:
+              type: string
+            storeName:
+              type: string
+            address:
+              type: string
+            city:
+              type: string
+            province:
+              type: string
+            postalCode:
+              type: string
+            phoneNumber:
+              type: string
+    AddressFieldError:
+      required:
+        - invalidFields
+        - message
+      properties:
+        invalidFields:
+          type: array
+          description: list of invalid fields for the bad name entry.
+          items:
+            description: Strings representing the invalid fields. Can contain address1,
+              address2, postalCode, city, province, and country
+            type: string
+            enum:
+              - address1
+              - address2
+              - postalCode
+              - city
+              - province
+              - country
+              - email
+              - phoneNumber
+              - nickname
+        message:
+          type: string
+          description: detailed description of error from server.  Debugging use only.
+    AddAddressResponse:
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: An id representing the shipping addresses added.
+        fieldErrors:
+          $ref: "#/components/schemas/AddressFieldError"
+    AddCollectionErrorResponse:
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: detailed description of error from server. Debugging use only
+    ShippingInfoItem:
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        promoCodes:
+          type: array
+          items:
+            type: string
+        appliedDiscounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PromoCodeItem"
+        cartItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        address1:
+          type: string
+        address2:
+          type: string
+        postalCode:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        country:
+          type: string
+        storeLocation:
+          type: string
+        shippingType:
+          type: string
+        shippingSpeedType:
+          type: string
+        phoneNumber:
+          type: string
+        email:
+          type: string
+    AppVersionResponse:
+      properties:
+        optionalVersionAndroid:
+          type: string
+        requiredVersionAndroid:
+          type: string
+        optionalVersioniOS:
+          type: string
+        requiredVersioniOS:
+          type: string
+    KillSwitchResponse:
+      properties:
+        commerceKillswitch:
+          type: boolean
+          default: false
+        clickCollectKillSwitch:
+          description: if Same day pickup is disabled globally this is set to true
+          default: false
+          type: boolean
+        killswitch:
+          type: boolean
+          default: false
+        sthKillSwitch:
+          type: boolean
+          default: false
+    GiftingInfoItem:
+      properties:
+        giftMessage:
+          type: string
+        sendGiftReceipt:
+          type: boolean
+          default: false
+    GiftingInfoResponse:
+      properties:
+        message:
+          type: string
+        sendGiftReceipt:
+          type: boolean
+          default: false
+    CartPromotionsResponse:
+      properties:
+        donations:
+          $ref: "#/components/schemas/DonationResult"
+    CartPromotionItem:
+      properties:
+        promotionType:
+          type: string
+          enum:
+            - LIMITED
+        maxLimit:
+          type: number
+        minLimit:
+          type: number
+        promoText:
+          type: string
+        limitText:
+          type: string
+    PromotionResponse:
+      required:
+        - imageUrls
+        - contentId
+      properties:
+        imageUrls:
+          type: array
+          description: all the main promotions image URLs in a ordered array
+          items:
+            description: Image URL string
+            type: string
+        contentId:
+          type: string
+          description: unique id representing the promotion
+    PromoCodeItem:
+      required:
+        - label
+        - amount
+      properties:
+        label:
+          type: string
+        amount:
+          type: string
+    GiftCardItem:
+      required:
+        - giftCardNumber
+        - giftCardPin
+        - brand
+        - brandId
+      properties:
+        giftCardNumber:
+          type: string
+          description: 19 to 21 digit number of gc or ev
+        giftCardPin:
+          type: string
+          description: 6 digit pin associated with gc or ev
+        brand:
+          type: string
+          description: nonce
+        brandId:
+          type: string
+          description: hashed nonce+
+    GiftCardDetailItem:
+      required:
+        - giftCardNumber
+        - giftCardPin
+        - balance
+        - balanceApplied
+      properties:
+        isValid:
+          type: boolean
+          description: card is valid or not valid. Default is not provided
+        giftCardNumber:
+          type: string
+          description: 19 to 21 digit number of gc or ev
+        giftCardPin:
+          type: string
+          description: 6 digit pin associated with gc or ev
+        brand:
+          type: string
+          description: nonce
+        brandId:
+          type: string
+          description: hashed nonce+
+        giftCardType:
+          type: string
+          enum:
+            - GIFTCARD
+            - EVOUCHER
+          description: Type of card (Gift card / Evoucher)
+        balance:
+          type: number
+          description: total balance on the gc / ev
+        balanceApplied:
+          type: number
+          description: applied balance on the gc / ev
+        error:
+          type: string
+          description: error message if card is not valid
+    PdpAndStoreCopy:
+      required:
+        - shipToStoreSLA
+        - sameDayPickupSLA
+        - homeDeliverySLA
+        - disclaimerCopy
+      properties:
+        sameDayPickupSLA:
+          type: string
+          description: Copy text for SLA for same day pick up on Product description page
+          example: "Ready for pick up tomorrow due to store hours and availability."
+        shipToStoreSLA:
+          type: string
+          description: Copy text for  SLA of shipping to store
+          example: "Free delivery within 1-2 weeks."
+        homeDeliverySLA:
+          type: string
+          description: copy text for SLA for shipping to Home
+        disclaimerCopy:
+          type: string
+          description: the disclaimer copy text to be displayed on pdp
+    NotFoundErrorResponse:
+      properties:
+        message:
+          type: string
+        detail:
+          type: string
+    StoreStatusResponse:
+      properties:
+        sdp:
+          type: boolean
+          default: true
+    RegisterRequest:
+      required:
+        - firstName
+        - lastName
+        - logonId
+        - logonPassword
+        - isLegalAge
+        - emailPreference
+      properties:
+        firstName:
+          description: the first name of the user
+          type: string
+        lastName:
+          description: the last name of the user
+          type: string
+        logonId:
+          description: the username for the user
+          type: string
+        airmilesNumber:
+          description: If the user has an Air Miles number, it should be added here.
+          type: string
+        logonPassword:
+          description: the password user will login with
+          type: string
+        isLegalAge:
+          description: Is the user of legal drinking age
+          type: boolean
+        emailPreference:
+          description: Does the user wish to receive email mailers
+          type: boolean
+    LoginRequest:
+      required:
+        - username
+        - password
+      properties:
+        username:
+          description: the username (email) the user should login with
+          type: string
+        password:
+          description: the associated password the user must login with
+          type: string
+    PasswordResetRequest:
+      required:
+        - email
+      properties:
+        email:
+          description: The email for the user
+          type: string
+    PutPasswordRequest:
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          description: the old password
+          type: string
+        newPassword:
+          description: the new password
+          type: string
+    ConfirmPasswordRequest:
+      required:
+        - logonId
+        - resetToken
+        - newPassword
+      properties:
+        logonId:
+          description: The email of the user being udpated.
+          type: string
+        resetToken:
+          description: The password reset token provided in the email
+          type: string
+        newPassword:
+          description: the new password
+          type: string
+    LogoutResponse:
+      required:
+        - message
+      properties:
+        message:
+          description: The message from logout
+          type: string
+    AddressResultList:
+      required:
+        - addresses
+      properties:
+        addresses:
+          type: array
+          description: A list of shipping addresses
+          items:
+            $ref: "#/components/schemas/AddressResult"
+    AddressRequest:
+      properties:
+        firstName:
+          description: first name of the user specified for the address
+          type: string
+        lastName:
+          description: last name of the user specified for the address
+          type: string
+        address1:
+          type: string
+        address2:
+          type: string
+        postalCode:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        country:
+          type: string
+        phoneNumber:
+          type: string
+        saveInAddressBook:
+          type: boolean
+          description: used only during the checkout to indicate if the address should be saved in address book.
+      required:
+        - firstName
+        - lastName
+        - address1
+        - postalCode
+        - city
+        - province
+        - country
+        - phoneNumber
+    AddressResult:
+      allOf:
+        - $ref: "#/components/schemas/AddressRequest"
+        - type: object
+          properties:
+            id:
+              type: string
+              description: A unique identifier for the address. Used when calling DELETE
+          required:
+            - id
+    ValidateAddressRequest:
+      allOf:
+        - $ref: "#/components/schemas/AddressRequest"
+        - type: object
+          properties:
+            type:
+              $ref: "#/components/schemas/AddressType"
+          required:
+            - type
+    CollectionRequest:
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    OrderStatus:
+      type: string
+      enum:
+        - "Order Placed"
+        - "In Progress"
+        - "Shipped"
+        - "Ready for Pickup"
+        - "Delivered"
+        - "Cancelled"
+    AddressType:
+      type: string
+      enum:
+        - SHIPPING
+        - BILLING
+    StockType:
+      type: string
+      enum:
+        - Destination Collection
+        - Online Exclusive
+        - Vintages
+    StockTypeOld:
+      type: string
+      enum:
+        - LCBO
+        - VINTAGES
+        - POTW
+    FilledBy:
+      description: indicates which party will be shipping this item.
+      type: string
+      enum:
+        - LCBO
+        - OTHER
+    Availability:
+      type: string
+      enum:
+        - ONLINE
+        - ONLINE_ONLY
+        - STORE_ONLY
+        - BOTH
+    SortBy:
+      type: string
+      enum:
+        - name
+        - price
+        - rating
+    SortOrder:
+      type: string
+      enum:
+        - descending
+        - ascending
+        - relevancy
+    PromotionType:
+      type: string
+      enum:
+        - product_type_banner
+        - product_type_picks
+        - banner
+        - filter
+        - home
+    Rating:
+      type: integer
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+      x-enum-varnames:
+        - ZeroStar
+        - OneStar
+        - TwoStar
+        - ThreeStar
+        - FourStar
+        - FiveStar
+    ServiceMessage:
+      required:
+        - textEN
+        - textFR
+        - messageType
+      properties:
+        textEN:
+          type: string
+          description: the message in english
+        textFR:
+          type: string
+          description: the message in french
+        messageType:
+          $ref: "#/components/schemas/MessageType"
+    MessageType:
+      type: string
+      enum:
+        - SERVICE_INTERRUPTION
+    CheckoutErrorCodes:
+      type: string
+      enum:
+        - GIFT_CARD
+        - BILLING
+        - PREAUTH_FAILURE
+        - SHIPPING
+        - CART_ITEMS_INVALID
+        - OTHER
+        - NDD_OFF
+        - SDP_GLOBAL_OFF
+        - SDP_STORE_OFF
+        - CREDIT_CARD_ISSUE
+        - RE_ORDER_TIMEOUT
+        - CREDIT_CARD_NICK_NAME_EXISTS
+        - STH_OFF
+    ReorderErrorCode:
+      type: string
+      enum:
+        - NONE
+        - ITEM_NOT_VALID
+    ProductListResultCategoryMatch:
+      properties:
+        type:
+          $ref: "#/components/schemas/ProductType"
+        category:
+          type: string
+          example: Vodka
+        subCategory:
+          type: string
+        subSubCategory:
+          type: string
+    CategoryBrowseResponse:
+      required:
+        - categories
+      properties:
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/RefinementItem'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/RefinementItem'
+    RegisterField:
+      type: string
+      enum:
+        - firstName
+        - lastName
+        - logonId
+        - logonPassword
+        - airmilesNumber
+        - isLegalAge
+        - emailPreference
+    AddressField:
+      type: string
+      enum:
+        - firstName
+        - lastName
+        - address1
+        - address2
+        - city
+        - province
+        - country
+        - postalCode
+        - phoneNumber
+    PutPasswordField:
+      type: string
+      enum:
+        - oldPassword
+        - newPassword
+    NewServerErrorResponse:
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewServerErrorItem'
+    NewServerErrorItem:
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+    CartResponse:
+      properties:
+        cartId:
+          type: string
+          example: "4fNPfrGolc9E0BzWFktNX1UJ0gwHshh6"
+        costTotal:
+          type: string
+          example: "$ 101.70"
+        shippingCost:
+          type: string
+          example: "$ 11.95"
+        shippingTax:
+          type: string
+          example: "$ 0.00"
+        bottleDepositTotal:
+          type: string
+          example: "$ 0.20"
+        savingsTotal:
+          type: string
+          example: "$ 2.00"
+        promoCodes:
+          type: array
+          items:
+            type: string
+            example: "FREESHIP"
+        appliedDiscounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PromoCodeItem"
+        count:
+          type: int
+          example: 1
+        sameDayPickupSLA:
+          type: string
+          example: "These products will be ready for pickup tomorrow"
+        shipToHomePickupSLA:
+          type: string
+          example:  "These products will be delivered in 3 - 5 business days"
+        pickUpLaterSLA:
+          type: string
+          example: "These products will be ready for pickup between 5-14 days."
+        checkoutError:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckoutError"
+        giftMessage:
+          $ref: "#/components/schemas/GiftingInfoResponse"
+        selectedShippingMethod:
+          $ref: '#/components/schemas/ShippingMethodItem'
+        shippingMethods:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShippingMethodItem"
+        selectedShippingAddress:
+          $ref: '#/components/schemas/AddressRequest'
+        selectedBillingAddress:
+          $ref: '#/components/schemas/AddressRequest'
+        subTotal:
+          type: string
+          example: "$ 90.70"
+        cartProductList:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartResponseProduct"
+        selectedContactInfo:
+          $ref: "#/components/schemas/ContactInformationResult"
+        selectedStore:
+          type: string
+          example: "217"
+        maxCost:
+          description: The maximum cart cost allowed for Checkout.
+          type: int
+          example: 5000
+        minCost:
+          description: The minimum cart cost allowed for Checkout.
+          type: int
+          example: 50
+        maxQuantity:
+          description: The maximum quantity of items allowed in a cart.
+          type: int
+          example: 480
+      required:
+        - cartId
+        - costTotal
+        - shippingCost
+        - shippingTax
+        - bottleDepositTotal
+        - savingsTotal
+        - count
+        - cartProductList
+        - subTotal
+        - maxCost
+        - minCost
+        - maxQuantity
+    CartResponseProduct:
+      properties:
+        product:
+          $ref: "#/components/schemas/DetailedProductItem"
+        cartItemError:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItemError"
+        orderType:
+          $ref: "#/components/schemas/OrderTypeCode"
+        cartItemUid:
+          type: string
+        cartItemQty:
+          type: int
+      required:
+        - product
+        - orderType
+        - cartItemUid
+        - cartItemQty
+    PostCartRequest:
+      properties:
+        storeId:
+          type: string
+        item:
+          $ref: "#/components/schemas/AddOrUpdateCartRequestItem"
+      required:
+        - storeId
+        - item
+    AddOrUpdateCartRequestItem:
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: int
+        cartItemUid:
+          type: string
+        orderType:
+          $ref: "#/components/schemas/OrderTypeCode"
+    PatchCartRequest:
+      properties:
+        storeId:
+          type: string
+        item:
+          $ref: "#/components/schemas/AddOrUpdateCartRequestItem"
+    CartItemError:
+      description: object representing cart item errors.
+      type: object
+      properties:
+        messageTitle:
+          type: string
+          example: "Product quantity not available"
+        messageDescription:
+          type: string
+          example: "The requested qty exceeds the maximum available"
+        type:
+          type: string
+          enum: ["success", "warning", "error"]
+    CheckoutError:
+      description: object representing cart errors.
+      type: object
+      properties:
+        messageTitle:
+          type: string
+          example: "Exceeded Purchase Limits"
+        messageDescription:
+          type: string
+          example: "One or more products in your cart has exceeded the purchase limit. Please review and update your cart before checkout."
+        type:
+          type: string
+          enum: ["success", "warning"]
+    PutCartRequest:
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PutCartRequestItem"
+      required:
+        - items
+    PutCartRequestItem:
+      properties:
+        cartItemUid:
+          type: string
+          description: the unique productId from magento
+        quantity:
+          type: int
+        orderType:
+          $ref: "#/components/schemas/OrderTypeCode"
+    OrderTypeCode:
+      type: string
+      description: different fullfillment methods for split cart
+      enum:
+          - ship_to_home
+          - same_day_pickup
+          - ship_to_store
+    PostMergeCartRequest:
+      properties:
+        guestCartId:
+          type: string
+          description: the id of the guest cart that will be merged to the registered cart
+      required:
+        - guestCartId
+    CartAddressRequest:
+      properties:
+        cartId:
+          type: string
+          description: the id of the cart
+        customerAddressId:
+          type: string
+          description: id of the address for a logged in user if setting the billing address to the cart from the address book
+        address:
+          $ref: "#/components/schemas/AddressRequest"
+        sameAsShipping:
+          type: boolean
+          description: set to true if billing and shipping are same otherwise set to false
+      required:
+        - cartId
+        - sameAsShipping
+    ContactInformationRequest:
+      properties:
+        email:
+          type: string
+          description: email of the user, for logged in user, this is not required
+        pickup:
+          $ref: "#/components/schemas/ContactInformationRequestPickup"
+        designate:
+          $ref: "#/components/schemas/ContactInformationRequestDesignate"
+    ShippingMethodItem:
+      properties:
+        carrierCode:
+          type: string
+          example: "flatRate"
+        methodCode:
+          type: string
+          example: "flatRate"
+        carrierTitle:
+          type: string
+          example: "( 5 - 14 days)"
+        methodTitle:
+          type: string
+          example: "Standard"
+        amount:
+          type: number
+          example: 11.95
+        baseAmount:
+          type: number
+          example: 11.95
+        available:
+          type: boolean
+          example: true
+        priceExclTax:
+          type: number
+          example: 11.95
+        priceInclTax:
+          type: number
+          example: 11.95
+      required:
+        - carrierCode
+        - methodCode
+        - carrierTitle
+        - methodTitle
+        - amount
+    ShippingMethodRequest:
+      properties:
+        methodCode:
+          type: string
+        carrierCode:
+          type: string
+      required:
+        - methodCode
+        - carrierCode
+    OrderHistoryProductItem:
+      properties:
+        itemNumber:
+          description: the unique number/identifier of the product
+          example: "82345"
+          type: string
+        itemName:
+          description: name of the Product"
+          example: "Champagne Rose.."
+          type: string
+        price:
+          description: regular price "the id of the ProductType"
+          example: "$ 14.95"
+          type: string
+        imageUrlThumb:
+          description: thumbnail image of the ProductType"
+          example: "https://integration-5ojmyuq-glir3zqkgsrxk.us-5.magentosite.cloud/media/catalog/h/o/homepage-banner_1.jpg"
+          type: string
+        productSize:
+          description: volume / size of the Product
+          example: "473 ML"
+          type: string
+        bottleDepositPrice:
+          description: Price of bottle deposit
+          example: "0.6"
+          type: number
+          format: float
+        ratings:
+          description: the bazaarvoice rating for the product
+          example: 4.0
+          type: number
+          format: float
+        numberOfReviews:
+          description: the number of reviews for the product
+          type: int
+          example: 10
+        productQuantity:
+          type: integer
+          example: 10
+          description: the  qubatity of the SKU ordered 
+        liquorTypeId:
+          type: string
+          description: the liquorTypeId of the product
+        liquorType:
+          type: string
+          description: the liquorType of the product
+          example: "Wine"
+      required:
+       - itemNumber
+       - itemName
+       - price
+       - imageUrlThumb
+       - productSize
+       - productQuantity
+       - bottleDepositPrice
+       - numberOfReviews
+       - ratings   
+    ProductItem:
+      properties:
+        itemNumber:
+          description: the unique number/identifier of the product
+          example: "82345"
+          type: string
+        itemName:
+          description: name of the Product"
+          example: "Champagne Rose.."
+          type: string
+        price:
+          description: regular price "the id of the ProductType"
+          example: "$ 14.95"
+          type: string
+        ltoRegularPrice:
+          description: sale price  of the Product
+          example: "$ 12.95"
+          type: string
+        imageUrlThumb:
+          description: thumbnail image of the ProductType"
+          example: "https://integration-5ojmyuq-glir3zqkgsrxk.us-5.magentosite.cloud/media/catalog/h/o/homepage-banner_1.jpg"
+          type: string
+        productSize:
+          description: volume / size of the Product
+          example: "473 ML"
+          type: string
+        stockStatus:
+          description: "indicates if the product is in stock or out of stock"
+          example: "IN_STOCK"
+          $ref: "#/components/schemas/StockStatus"
+        ratings:
+          description: the bazaarvoice rating for the product
+          example: 4.0
+          type: number
+          format: float
+        numberOfReviews:
+          description: the number of reviews for the product
+          type: int
+          example: 10
+        outOfStockThreshold:
+          type: int
+          example: 10
+          description: the  out of stock threshold value for inventory set by the server 
+        lowStockThreshold:
+          type: int
+          description: the low stock threshold value for inventory set by the server
+          example: 3
+        onlineInventory:
+          type: int
+          description: the qty of  the product available in the warehouse
+          example: 20
+        storeInventory:
+          type: int
+          description: the qty of this available in the store
+          example: 3
+        maxCartQuantity:
+          type: int
+          description: the maximum qty of this product that can be purchased / added to cart
+          example: 300
+        qtyIncrement:
+          type: int
+          description: 'the product unit quantity. Example: a 6 pack has increment of 6'
+          example: 6
+      required:
+       - itemNumber
+       - itemName
+       - price
+       - imageUrlThumb
+       - productSize
+       - outOfStockThreshold
+       - lowStockThreshold
+       - onlineInventory
+       - storeInventory
+       - maxCartQuantity
+       - qtyIncrement
+    PlacedOrderItem:
+      properties:
+        orderNumber:
+          type: string
+        deliveryMode:
+          $ref: "#/components/schemas/OrderTypeCode"
+        sla:
+          type: string
+      required:
+        - orderNumber
+        - deliveryMode
+        - sla
+    PlaceOrderRequest:
+      properties:
+        cardHolderName:
+          type: string
+        paymentToken:
+          type: string
+        paymentType:
+          $ref: "#/components/schemas/PaymentType"
+      required:
+        - cardHolderName
+        - paymentToken
+        - paymentType
+    PaymentType:
+      type: string
+      enum:
+        - apple_pay
+        - credit_card
+    ContactInformationResultDesignate:
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+    ContactInformationRequestPickup:
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+    ContactInformationRequestDesignate:
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+      required:
+        - firstName
+        - lastName
+    ContactInformationResult:
+      properties:
+        email:
+          type: string
+        pickup:
+          $ref: "#/components/schemas/ContactInformationRequestPickup"
+        designate:
+          $ref: "#/components/schemas/ContactInformationResultDesignate"
+    StockStatus:
+      type: string
+      enum:
+        - IN_STOCK
+        - LOW_STOCK
+        - OUT_OF_STOCK
+        - PRODUCT_UNAVAILABLE
+    ProductType:
+      type: string
+      enum:
+        - "Wine"
+        - "Spirits"
+        - "Beer & Cider"
+        - "Coolers"
+      x-enum-varnames:
+        - wine
+        - spirits
+        - beer
+        - coolers
+    OfferType:
+      type: string
+      enum:
+        - "On Sale"
+        - "Clearance"
+      x-enum-varnames:
+        - onSale
+        - clearance
+    OfferTypeFrench:
+      type: string
+      enum:
+        - "En Solde"
+        - "Clearance"
+      x-enum-varnames:
+        - onSale
+        - clearance
+    PromoCodeRequest:
+      properties:
+        promoCode:
+          type: string
+          example: 'TEST1DEMO'
+      required:
+        - promoCode
+    PatchDonationRequest:
+      properties:
+        item:
+          type: object
+          properties:
+            sku:
+              type: string
+            quantity:
+              type: int
+          required:
+            - sku
+            - quantity
