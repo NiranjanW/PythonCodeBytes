@@ -23,14 +23,41 @@ class SlinkedLIst:
         self.head = NewNode
         NewNode.nextval = self.head
 
-
+    def contains (self,data):
+        if self.isEmpty():
+            raise StopIteration("list is empty")
+        if  self.head == data:
+            return True
+        self.head = self.head.nextval
+            
+            
     
+    def __len__(self):
+        count = 0
+        node =self.head
+        while node:
+            count +=1
+            node = node.nextval
+        return count
+   
+    def __node_iter(self):
+       node = self.head
+       while node:
+           yield node
+           node = node.next
+    
+    def __str__(self):
+        return '->'.join(str[node] for node in self)      
+     
+    def __iter__(self):
+       """ returns a vlue iterator""" 
+       return iter(map(lambda node:self.value, self.__node_iter()))
 
     def deleteNode (self, key):
         temp = self.head
 
         if temp is not None:
-            if (temp.data =key):
+            if (temp.data ==key):
                 self.head = temp.nextval
                 temp =None 
                 return 

@@ -1,0 +1,122 @@
+{
+    "eventInfo": {
+        "eventTime": "2022-05-26T19:34:08.6373Z",
+        "eventClass": "STORE_INFO",
+        "eventIdentifier": null,
+        "eventType": "NEW",
+        "eventSourceSystem": {
+            "systemCode": "STNA",
+            "systemName": "Store Repository"
+        }
+    },
+    "locationInfo": {
+        "locationType": "RETAIL_STORE",
+        "primarySupplyingEntity": {
+            "supplyingEntityType": "WAREHOUSE",
+            "supplyingEntityIdentifier": "102",
+            "supplyingEntityName": "002"
+        },
+        "storeClass": "A",
+        "storeType": "R",
+        "storeStatus": "A",
+        "storeName": "YONGE EGLINTON CENTRE",
+        "nearestIntersection": "YONGE & EGLINTON (YONGE EGLINTON CTR)",
+        "numberOfRegisters": 5,
+        "geographicalInfo": {
+            "regionInfo": {
+                "regionId": 0,
+                "regionName": ""
+            },
+            "districtInfo": {
+                "districtId": 22,
+                "districtName": ""
+            },
+            "xCoordinate": -79.398799,
+            "yCoordinate": 43.707004
+        },
+        "dimensionInfo": {
+            "squareFootage": [
+                {
+                    "category": "RETAIL",
+                    "areaSize": 6555,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "GROSS",
+                    "areaSize": 19777,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "BASEMENT",
+                    "areaSize": 0,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "MAIN_FLOOR",
+                    "areaSize": 10054,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "SECOND_FLOOR",
+                    "areaSize": 0,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "OFF_PREMISE",
+                    "areaSize": 3168,
+                    "unitOfMeasure": "FT"
+                }
+            ],
+            "linearFootage": [
+                {
+                    "category": "WINE",
+                    "areaSize": 1188,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "SPIRITS",
+                    "areaSize": 605,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "BCRTD",
+                    "areaSize": 686,
+                    "unitOfMeasure": "FT"
+                },
+                {
+                    "category": "VINTAGES",
+                    "areaSize": 215,
+                    "unitOfMeasure": "FT"
+                }
+            ]
+        },
+        "boardOwned": "N",
+        "locationIdentifier": {
+            "primaryIdentifier": "0457",
+            "primaryIdentifierSystem": {
+                "systemCode": "STNA",
+                "systemName": "Store Repository"
+            }
+        },
+        "locationAddress": [
+            {
+                "addressType": "POSTAL_ADDRESS",
+                "streetName": "2300 YONGE STREET",
+                "streetNumber": "",
+                "postalCode": "M4P1E4",
+                "cityName": "TORONTO",
+                "cityRegion": "CENTRAL",
+                "countryName": "Canada",
+                "provinceState": "ON",
+                "addressLine2": "YONGE EGLINTON CENTRE"
+            }
+        ],
+        "locationStatus": "ACTIVE",
+        "firstOpenDate": "1973-12-15",
+        "carrierInfo": null,
+        "telephoneNumber": "1-416-4874858",
+        "buildingType": "E",
+        "numberOfParkingSpots": 0,
+        "routeInfo": []
+    }
+}
